@@ -21,7 +21,7 @@ jobs:
 
     strategy:
       matrix:
-        go-version: [1.16.x, 1.17.x, 1.18.x, 1.19.x, 1.20.x, 1.21.x]
+        go-version: [1.15.x, 1.16.x, 1.17.x, 1.18.x, 1.19.x, 1.20.x, 1.21.x]
         os: [ubuntu-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
@@ -37,5 +37,6 @@ jobs:
         path: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
     - name: Test
       run: |
-        go get -d -t .
+        go get -u .
+        go clean -testcache
         make test
