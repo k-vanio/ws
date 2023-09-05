@@ -39,4 +39,5 @@ jobs:
       run: |
         go get -u .
         go clean -testcache
+        go mod tidy
         make test
