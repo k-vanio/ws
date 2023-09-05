@@ -1,0 +1,18 @@
+{
+	"name": "Golang",
+	"dockerFile": "Dockerfile",
+	"features": {},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"formulahendry.terminal",
+				"EditorConfig.EditorConfig",
+				"golang.go",
+				"aldijav.golangwithdidi",
+				"streetsidesoftware.code-spell-checker"
+			]
+		}
+	},
+	"remoteUser": "vanio",
+	"forwardPorts": [3000]
+}
