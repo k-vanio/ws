@@ -61,6 +61,8 @@ func (s *server) Start(addr, pattern string) {
 			}
 
 			client := NewClient(s, conn)
+
+			s.Add(client)
 			s.handler(client)
 		})
 		log.Fatalln(http.ListenAndServe(addr, nil))
