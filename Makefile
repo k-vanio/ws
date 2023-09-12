@@ -6,4 +6,4 @@ all:
 
 .PHONY: test
 test:
-	go test -race -v .
+	go test -timeout 10s  -race -v .

@@ -1,11 +1,17 @@
 package ws
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"sync"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+)
+
+var (
+	ErrNotFoundHandler = errors.New("not found handler")
 )
 
 var Upgrader = websocket.Upgrader{
@@ -41,7 +47,7 @@ func (s *server) Connect(fn func(client Client)) {
 	s.handler = fn
 }
 
-func (s *server) Start(addr, pattern string) {
+func (s *server) Start(addr, pattern string) error {
 	defer func() {
 		close(s.broadcast)
 		close(s.register)
@@ -49,21 +55,24 @@ func (s *server) Start(addr, pattern string) {
 		close(s.stop)
 	}()
 
+	if s.handler == nil {
+		return ErrNotFoundHandler
+	}
+
 	go func() {
-		http.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		r := mux.NewRouter()
+		r.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 			conn, err := Upgrader.Upgrade(w, r, nil)
 			if err != nil {
 				return
 			}
 
-			if s.handler == nil {
-				panic("not found handler")
-			}
-
 			client := NewClient(s, conn)
+
+			s.Add(client)
 			s.handler(client)
 		})
-		log.Fatalln(http.ListenAndServe(addr, nil))
+		log.Fatalln(http.ListenAndServe(addr, r))
 	}()
 
 stop:
@@ -81,6 +90,8 @@ stop:
 			break stop
 		}
 	}
+
+	return nil
 }
 
 func (s *server) Stop() {
