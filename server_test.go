@@ -17,7 +17,9 @@ func TestNewServer(t *testing.T) {
 	go func() {
 		time.Sleep(time.Millisecond * 2)
 		assert.Equal(t, 0, server.Size())
+
 		<-wait
+
 		close(wait)
 		server.Stop()
 	}()
@@ -26,22 +28,13 @@ func TestNewServer(t *testing.T) {
 		time.Sleep(time.Millisecond * 3)
 		client, _, err := websocket.DefaultDialer.Dial("ws://0.0.0.0:7000/", nil)
 		assert.Nil(t, err)
+		assert.NotNil(t, client)
+		assert.Equal(t, 1, server.Size())
 
-		err = client.WriteMessage(websocket.CloseMessage, nil)
-		assert.Nil(t, err)
-
-		time.Sleep(time.Millisecond * 3)
-
-		defer func() {
-			client.Close()
-			wait <- true
-		}()
+		wait <- true
 	}()
 
-	server.Connect(func(client ws.Client) {
-		assert.NotNil(t, client)
-		client.Server().Remove(client)
-	})
+	server.Connect(func(client ws.Client) {})
 	server.Start(":7000", "/")
 }
 

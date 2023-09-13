@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -49,10 +50,18 @@ func (s *server) Connect(fn func(client Client)) {
 
 func (s *server) Start(addr, pattern string) error {
 	defer func() {
-		close(s.broadcast)
-		close(s.register)
-		close(s.unregister)
-		close(s.stop)
+		ticker := time.NewTicker(time.Millisecond * 100)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			if s.Size() == 0 {
+				close(s.broadcast)
+				close(s.register)
+				close(s.unregister)
+				close(s.stop)
+				return
+			}
+		}
 	}()
 
 	if s.handler == nil {
@@ -69,7 +78,7 @@ func (s *server) Start(addr, pattern string) error {
 
 			client := NewClient(s, conn)
 
-			s.Add(client)
+			s.register <- client
 			s.handler(client)
 		})
 		log.Fatalln(http.ListenAndServe(addr, r))
@@ -95,15 +104,12 @@ stop:
 }
 
 func (s *server) Stop() {
+	s.mu.Lock()
+	for client := range s.clients {
+		client.Conn().Close()
+	}
+	s.mu.Unlock()
 	s.stop <- true
-}
-
-func (s *server) Add(client Client) {
-	s.register <- client
-}
-
-func (s *server) Remove(client Client) {
-	s.unregister <- client
 }
 
 func (s *server) Size() int {

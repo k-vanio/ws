@@ -67,8 +67,8 @@ func NewClient(server *server, conn *websocket.Conn) Client {
 
 func (c *client) read() {
 	defer func() {
-		c.Server().Remove(c)
-		c.Conn().Close()
+		c.server.unregister <- c
+		c.conn.Close()
 		close(c.send)
 	}()
 
