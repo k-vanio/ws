@@ -95,12 +95,6 @@ stop:
 }
 
 func (s *server) Stop() {
-	s.mu.Lock()
-	defer s.mu.Lock()
-	for c := range s.clients {
-		s.Remove(c)
-	}
-
 	s.stop <- true
 }
 
