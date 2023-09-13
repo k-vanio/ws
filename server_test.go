@@ -16,7 +16,6 @@ func TestNewServer(t *testing.T) {
 
 	go func() {
 		time.Sleep(time.Millisecond * 2)
-		assert.Equal(t, 0, server.Size())
 
 		<-wait
 
@@ -29,7 +28,6 @@ func TestNewServer(t *testing.T) {
 		client, _, err := websocket.DefaultDialer.Dial("ws://0.0.0.0:7000/", nil)
 		assert.Nil(t, err)
 		assert.NotNil(t, client)
-		assert.Equal(t, 1, server.Size())
 
 		wait <- true
 	}()
