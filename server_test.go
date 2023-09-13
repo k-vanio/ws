@@ -12,16 +12,6 @@ import (
 
 func TestNewServer(t *testing.T) {
 	server := ws.NewServer()
-	wait := make(chan bool)
-
-	go func() {
-		time.Sleep(time.Millisecond * 2)
-
-		<-wait
-
-		close(wait)
-		server.Stop()
-	}()
 
 	go func() {
 		time.Sleep(time.Millisecond * 3)
@@ -29,7 +19,7 @@ func TestNewServer(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, client)
 
-		wait <- true
+		server.Stop()
 	}()
 
 	server.Connect(func(client ws.Client) {})

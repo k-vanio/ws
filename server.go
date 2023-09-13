@@ -59,7 +59,7 @@ func (s *server) Start(addr, pattern string) error {
 				close(s.register)
 				close(s.unregister)
 				close(s.stop)
-				return
+				break
 			}
 		}
 	}()
