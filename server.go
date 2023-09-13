@@ -97,11 +97,8 @@ stop:
 func (s *server) Stop() {
 	s.mu.Lock()
 	defer s.mu.Lock()
-	for c, ok := range s.clients {
-		if ok {
-			c.Conn().WriteMessage(websocket.PingMessage, nil)
-			s.Remove(c)
-		}
+	for c := range s.clients {
+		s.Remove(c)
 	}
 
 	s.stop <- true
