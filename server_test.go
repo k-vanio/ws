@@ -27,6 +27,11 @@ func TestNewServer(t *testing.T) {
 		client, _, err := websocket.DefaultDialer.Dial("ws://0.0.0.0:7000/", nil)
 		assert.Nil(t, err)
 
+		err = client.WriteMessage(websocket.CloseMessage, nil)
+		assert.Nil(t, err)
+
+		time.Sleep(time.Millisecond * 3)
+
 		defer func() {
 			client.Close()
 			wait <- true
@@ -59,6 +64,8 @@ func TestNewServerErrUpgrade(t *testing.T) {
 
 	server.Connect(func(client ws.Client) {
 		assert.NotNil(t, client)
+
+		client.On("hi", func(c ws.Client, data interface{}) {})
 	})
 	server.Start(":7001", "/")
 }
