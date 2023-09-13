@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -49,21 +48,6 @@ func (s *server) Connect(fn func(client Client)) {
 }
 
 func (s *server) Start(addr, pattern string) error {
-	defer func() {
-		ticker := time.NewTicker(time.Millisecond * 100)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			if s.Size() == 0 {
-				close(s.broadcast)
-				close(s.register)
-				close(s.unregister)
-				close(s.stop)
-				break
-			}
-		}
-	}()
-
 	if s.handler == nil {
 		return ErrNotFoundHandler
 	}
@@ -104,11 +88,9 @@ stop:
 }
 
 func (s *server) Stop() {
-	s.mu.Lock()
-	for client := range s.clients {
-		client.Conn().Close()
+	for c := range s.clients {
+		c.Conn().WriteMessage(websocket.CloseMessage, nil)
 	}
-	s.mu.Unlock()
 	s.stop <- true
 }
 

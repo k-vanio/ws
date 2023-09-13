@@ -1,6 +1,7 @@
 package ws_test
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
@@ -13,10 +14,11 @@ func TestNewServer(t *testing.T) {
 	server := ws.NewServer()
 
 	go func() {
-		time.Sleep(time.Millisecond * 3)
+		time.Sleep(time.Millisecond * 30)
 		client, _, err := websocket.DefaultDialer.Dial("ws://0.0.0.0:7000/", nil)
 		assert.Nil(t, err)
 		assert.NotNil(t, client)
+		assert.Equal(t, 1, server.Size())
 
 		server.Stop()
 	}()
@@ -25,27 +27,27 @@ func TestNewServer(t *testing.T) {
 	server.Start(":7000", "/")
 }
 
-// func TestNewServerErrNotFoundHandler(t *testing.T) {
-// 	server := ws.NewServer()
+func TestNewServerErrNotFoundHandler(t *testing.T) {
+	server := ws.NewServer()
 
-// 	err := server.Start(":7000", "/")
-// 	assert.Equal(t, ws.ErrNotFoundHandler, err)
-// }
+	err := server.Start(":7000", "/")
+	assert.Equal(t, ws.ErrNotFoundHandler, err)
+}
 
-// func TestNewServerErrUpgrade(t *testing.T) {
-// 	server := ws.NewServer()
+func TestNewServerErrUpgrade(t *testing.T) {
+	server := ws.NewServer()
 
-// 	go func() {
-// 		time.Sleep(time.Millisecond * 2)
-// 		res, _ := http.DefaultClient.Get("http://0.0.0.0:7000/")
-// 		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-// 		server.Stop()
-// 	}()
+	go func() {
+		time.Sleep(time.Millisecond * 2)
+		res, _ := http.DefaultClient.Get("http://0.0.0.0:7001/")
+		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+		server.Stop()
+	}()
 
-// 	server.Connect(func(client ws.Client) {
-// 		assert.NotNil(t, client)
+	server.Connect(func(client ws.Client) {
+		assert.NotNil(t, client)
 
-// 		client.On("hi", func(c ws.Client, data interface{}) {})
-// 	})
-// 	server.Start(":7000", "/")
-// }
+		client.On("hi", func(c ws.Client, data interface{}) {})
+	})
+	server.Start(":7001", "/")
+}
