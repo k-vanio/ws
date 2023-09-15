@@ -2,11 +2,9 @@ package ws
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"sync"
 
-	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
 
@@ -28,54 +26,49 @@ type server struct {
 	clients    map[Client]bool
 	register   chan Client
 	unregister chan Client
-	stop       chan bool
 }
 
 func NewServer() *server {
-	return &server{
+	s := &server{
 		handler:    nil,
 		mu:         &sync.Mutex{},
 		broadcast:  make(chan []byte),
 		clients:    make(map[Client]bool),
 		register:   make(chan Client),
 		unregister: make(chan Client),
-		stop:       make(chan bool),
 	}
+
+	go s.start()
+
+	return s
 }
 
 func (s *server) Connect(fn func(client Client)) {
 	s.handler = fn
 }
 
-func (s *server) Start(addr, pattern string) error {
+func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if s.handler == nil {
+		http.Error(w, "unregistered handler", http.StatusInternalServerError)
+		return
+	}
+
+	conn, err := Upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return
+	}
+
+	NewClient(s, conn)
+	s.handler(NewClient(s, conn))
+}
+
+func (s *server) start() {
 	defer func() {
 		close(s.broadcast)
 		close(s.register)
 		close(s.unregister)
-		close(s.stop)
 	}()
 
-	if s.handler == nil {
-		return ErrNotFoundHandler
-	}
-
-	go func() {
-		r := mux.NewRouter()
-		r.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
-			conn, err := Upgrader.Upgrade(w, r, nil)
-			if err != nil {
-				return
-			}
-
-			client := NewClient(s, conn)
-
-			s.Add(client)
-			s.handler(client)
-		})
-		log.Fatalln(http.ListenAndServe(addr, r))
-	}()
-
-stop:
 	for {
 		select {
 		case client := <-s.register:
@@ -86,24 +79,8 @@ stop:
 			s.mu.Lock()
 			delete(s.clients, client)
 			s.mu.Unlock()
-		case <-s.stop:
-			break stop
 		}
 	}
-
-	return nil
-}
-
-func (s *server) Stop() {
-	s.stop <- true
-}
-
-func (s *server) Add(client Client) {
-	s.register <- client
-}
-
-func (s *server) Remove(client Client) {
-	s.unregister <- client
 }
 
 func (s *server) Size() int {
